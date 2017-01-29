@@ -1,1 +1,5 @@
-[{"Name":"github", "EndPoint":"https://github.com"},{"Name":"aws", "Endpoint":"https://aws.amazon.com"}]
+[
+	{"name": "aws", "url": "https://aws.aazon.com"},
+	{"name": "github", "url": "https://github.com"},
+	{"name": "google", "url": "https://www.google.com"}
+]

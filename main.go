@@ -5,45 +5,43 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/gorilla/handlers"
 	//        "gopkg.in/gin-gonic/gin.v1"
-	"errors"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 )
 
 type envConfig struct {
 	ListenPort string `env:"LISTEN_PORT" envDefault:"8080"`
-	ConnectURL string `env:"CONNECT_URL" envDefault:"127.0.0.1"`
 }
 
 //Config stores global env variables
 var Config = envConfig{}
 
 // func lookupService()
-func lookupService(url string, errChan chan error) {
-	response := make(chan struct{})
+func lookupService(s Service) {
+	response := make(chan int)
 
 	go func() {
-		resp, err := http.Get(url)
-
+		resp, err := http.Head(s.URL)
 		if err != nil {
-			errChan <- err
+			response <- http.StatusServiceUnavailable
+			return
 		}
 
-		// TODO: check resp
-		// ...
-
-		response <- struct{}{}
+		response <- resp.StatusCode
 	}()
+
+	code := 0
 
 	select {
 	case <-time.After(2 * time.Second):
-		errChan <- errors.New("timeout for service ")
-		return
-	case <-response:
-		return
+		code = http.StatusServiceUnavailable
+		break
+	case code = <-response:
+		break
 	}
+
+	fmt.Println(s.Name, code)
 }
 
 // =============
@@ -53,30 +51,10 @@ func lookupService(url string, errChan chan error) {
 func init() {
 	d := LoadDataFile("services.json")
 	go func() {
-		for _ = range time.Tick(10 * time.Second) {
-			var wg sync.WaitGroup
-			var Status error
-
-			// N responses
-			wg.Add(len(d))
-			errChan := make(chan error, len(d)) // buffered for N responses
-
+		for _ = range time.Tick(3  * time.Second) {
 			for _, service := range d {
-				go func() {
-					lookupService(service.(string), errChan)
-					wg.Done()
-				}()
+				go lookupService(service)
 			}
-
-			wg.Wait()
-
-			// Here all of the goroutines somehow terminated
-			for err := range errChan {
-				Status = err
-				break
-			}
-
-			Status = nil
 		}
 	}()
 }
