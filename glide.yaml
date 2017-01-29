@@ -1,0 +1,9 @@
+package: github.com/pearsontechnology/go-test-app
+import:
+- package: github.com/caarlos0/env
+  version: v2.1
+- package: github.com/gorilla/handlers
+  version: v1.1
+- package: github.com/gorilla/mux
+  version: v1.1
+- package: gopkg.in/mgo.v2
