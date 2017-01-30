@@ -17,6 +17,10 @@ type envConfig struct {
 //Config stores global env variables
 var Config = envConfig{}
 
+// Global state of test services
+var State = make(map[string]int)
+//var State = []Service{}
+
 // func lookupService()
 func lookupService(s Service) {
 	response := make(chan int)
@@ -40,8 +44,9 @@ func lookupService(s Service) {
 	case code = <-response:
 		break
 	}
-
-	fmt.Println(s.Name, code)
+        State[s.Name] = code
+//State  = Service{s.Name,s.URL, code}
+	fmt.Println(State)
 }
 
 // =============

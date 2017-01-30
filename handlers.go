@@ -1,25 +1,20 @@
 package main
 
 import (
-//	"encoding/json"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-//func viewCountryCodes(w http.ResponseWriter, req *http.Request) {
-//	rs, err := getCountryCodes()
-//	if err != nil {
-//		//		TODO..do not panic; use a recovery handler
-//		panic(err)
-//	}
-//
-//	bs, err := json.Marshal(rs)
-//	if err != nil {
-//		//		TODO..do not panic; use a recovery handler
-//		panic(err)
-//	}
-//	w.Write(bs)
-//}
+func serviceStatus(w http.ResponseWriter, req *http.Request) {
+
+	bs, err := json.Marshal(State)
+	if err != nil {
+		//		TODO..do not panic; use a recovery handler
+		panic(err)
+	}
+	w.Write(bs)
+}
 
 type supportCORS struct {
 	router *mux.Router
@@ -50,7 +45,7 @@ func servHome(w http.ResponseWriter, r *http.Request) {
 func AddHandlers() *mux.Router {
 	router := mux.NewRouter()
 	http.Handle("/", &supportCORS{router})
-//	router.HandleFunc("/status", viewCountryCodes).Methods("GET")
+	router.HandleFunc("/services", serviceStatus).Methods("GET")
 	router.HandleFunc("/", servHome).Methods("GET")
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))))
 	return router

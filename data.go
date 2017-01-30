@@ -10,6 +10,7 @@ import (
 type Service struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+        Status int `json:"code,omitempty"`
 }
 
 //LoadDataFile loads a json data file.
