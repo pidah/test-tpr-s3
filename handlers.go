@@ -8,6 +8,11 @@ import (
 
 func serviceStatus(w http.ResponseWriter, req *http.Request) {
 
+	for _, value := range State {
+		if value != "OK" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	}
 	bs, err := json.Marshal(State)
 	if err != nil {
 		//		TODO..do not panic; use a recovery handler

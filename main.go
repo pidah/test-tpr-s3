@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/caarlos0/env"
 	"github.com/gorilla/handlers"
-	//        "gopkg.in/gin-gonic/gin.v1"
 	"net/http"
 	"os"
 	"time"
@@ -18,12 +17,14 @@ type envConfig struct {
 var Config = envConfig{}
 
 // Global state of test services
-var State = make(map[string]int)
+var State = make(map[string]string)
+
 //var State = []Service{}
 
 // func lookupService()
 func lookupService(s Service) {
 	response := make(chan int)
+	testServiceState := "OK"
 
 	go func() {
 		resp, err := http.Head(s.URL)
@@ -44,19 +45,19 @@ func lookupService(s Service) {
 	case code = <-response:
 		break
 	}
-        State[s.Name] = code
-//State  = Service{s.Name,s.URL, code}
-	fmt.Println(State)
-}
+	if code != 200 {
+		testServiceState = "Service Unavailable"
+	}
+	State[s.Name] = testServiceState
 
-// =============
-// HTTP endpoint
-//return gin.JSON(Status) // global Status
+	//State  = Service{s.Name,s.URL, code}
+	//fmt.Println(State)
+}
 
 func init() {
 	d := LoadDataFile("services.json")
 	go func() {
-		for _ = range time.Tick(3  * time.Second) {
+		for _ = range time.Tick(3 * time.Second) {
 			for _, service := range d {
 				go lookupService(service)
 			}
