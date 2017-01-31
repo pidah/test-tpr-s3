@@ -8,9 +8,9 @@ import (
 )
 
 type Service struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-        Status int `json:"code,omitempty"`
+	Name   string `json:"name"`
+	URL    string `json:"url"`
+	Status int    `json:"code,omitempty"`
 }
 
 //LoadDataFile loads a json data file.
@@ -27,9 +27,9 @@ func LoadDataFile(fileName string) []Service {
 		fmt.Println("Can't open config file")
 		os.Exit(1)
 	}
-          for _, service := range services {
-    //fmt.Printf( "The service '%s' is available at  '%s'\n", k, v[k] );
+	for _, service := range services {
+		//fmt.Printf( "The service '%s' is available at  '%s'\n", k, v[k] );
 		fmt.Println(service)
-  }
+	}
 	return services
 }

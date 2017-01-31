@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	//	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func serviceStatus(w http.ResponseWriter, req *http.Request) {
+func GlobalServiceStatus(w http.ResponseWriter, req *http.Request) {
 
 	for _, value := range State {
 		if value != "OK" {
@@ -19,6 +20,26 @@ func serviceStatus(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	w.Write(bs)
+}
+
+func SingleServiceStatus(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	ts := vars["testService"]
+	if val, ok := State[ts]; !ok {
+		w.Write([]byte("☄ hey!, the requested test service could not be found."))
+		w.WriteHeader(http.StatusNotFound)
+
+	} else {
+		bs, err := json.Marshal(val)
+		if err != nil {
+			//		TODO..do not panic; use a recovery handler
+			panic(err)
+		}
+		if val != "OK" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+		w.Write(bs)
+	}
 }
 
 type supportCORS struct {
@@ -50,7 +71,8 @@ func servHome(w http.ResponseWriter, r *http.Request) {
 func AddHandlers() *mux.Router {
 	router := mux.NewRouter()
 	http.Handle("/", &supportCORS{router})
-	router.HandleFunc("/services", serviceStatus).Methods("GET")
+	router.HandleFunc("/services", GlobalServiceStatus).Methods("GET")
+	router.HandleFunc("/service/{testService}", SingleServiceStatus).Methods("GET")
 	router.HandleFunc("/", servHome).Methods("GET")
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))))
 	return router

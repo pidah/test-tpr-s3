@@ -11,7 +11,7 @@ const checkMark = "\u2713"
 const ballotX = "\u2717"
 
 var (
-	server *httptest.Server
+	server   *httptest.Server
 	endpoint string
 )
 
