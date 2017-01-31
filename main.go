@@ -55,9 +55,10 @@ func lookupService(s Service) {
 }
 
 func init() {
+	interval := 3
 	d := LoadDataFile("services.json")
 	go func() {
-		for _ = range time.Tick(3 * time.Second) {
+		for _ = range time.Tick(time.Duration(interval) * time.Second) {
 			for _, service := range d {
 				go lookupService(service)
 			}
