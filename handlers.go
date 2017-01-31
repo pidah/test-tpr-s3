@@ -26,8 +26,8 @@ func SingleServiceStatus(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	ts := vars["testService"]
 	if val, ok := State[ts]; !ok {
-		w.Write([]byte("☄ hey!, the requested test service could not be found."))
 		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("☄ hey!, the requested test service could not be found."))
 
 	} else {
 		bs, err := json.Marshal(val)
