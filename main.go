@@ -1,12 +1,19 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/caarlos0/env"
 	"github.com/gorilla/handlers"
 	"net/http"
 	"os"
 	"time"
+)
+
+var (
+	client *http.Client
+	pool   *x509.CertPool
 )
 
 type envConfig struct {
@@ -27,7 +34,7 @@ func lookupService(s Service) {
 	testServiceState := "OK"
 
 	go func() {
-		resp, err := http.Head(s.URL)
+		resp, err := client.Head(s.URL)
 		if err != nil {
 			response <- http.StatusServiceUnavailable
 			return
@@ -55,6 +62,11 @@ func lookupService(s Service) {
 }
 
 func init() {
+
+	pool = x509.NewCertPool()
+	pool.AppendCertsFromPEM(pemCerts)
+	client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}}
+
 	interval := 3
 	d := LoadDataFile("services.json")
 	go func() {
