@@ -1,6 +1,6 @@
 - name: fakeservice
   url: https://aws.afakeservice.com
-- name: github
-  url: https://github.com
+- name: aws
+  url: https://aws.amazon.com
 - name: google
   url: https://www.google.com
