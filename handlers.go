@@ -8,13 +8,15 @@ import (
 )
 
 func GlobalServiceStatus(w http.ResponseWriter, req *http.Request) {
+	Lock.RLock()
+        defer Lock.RUnlock()
 
-	for _, value := range State {
+	for _, value := range Lock.State {
 		if value != "OK" {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
 	}
-	bs, err := json.Marshal(State)
+	bs, err := json.Marshal(Lock.State)
 	if err != nil {
 		//		TODO..do not panic; use a recovery handler
 		panic(err)
@@ -23,9 +25,12 @@ func GlobalServiceStatus(w http.ResponseWriter, req *http.Request) {
 }
 
 func SingleServiceStatus(w http.ResponseWriter, req *http.Request) {
+	Lock.RLock()
+        defer Lock.RUnlock()
+
 	vars := mux.Vars(req)
 	ts := vars["testService"]
-	if val, ok := State[ts]; !ok {
+	if val, ok := Lock.State[ts]; !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("☄ hey!, the requested test service could not be found."))
 

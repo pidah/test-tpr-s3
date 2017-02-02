@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/handlers"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -24,7 +25,12 @@ type envConfig struct {
 var Config = envConfig{}
 
 // Global state of test services
-var State = make(map[string]string)
+//var State = make(map[string]string)
+
+var Lock = struct {
+	sync.RWMutex
+	State map[string]string
+}{State: make(map[string]string)}
 
 //var State = []Service{}
 
@@ -55,9 +61,13 @@ func lookupService(s Service) {
 	if code != 200 {
 		testServiceState = "Service Unavailable"
 	}
-	State[s.Name] = testServiceState
 
-	//State  = Service{s.Name,s.URL, code}
+	Lock.Lock()
+        defer Lock.Unlock()
+	Lock.State[s.Name] = testServiceState
+	//	State[s.Name] = testServiceState
+
+	//State  = Service{s.Name,s.URL}
 	//fmt.Println(State)
 }
 
