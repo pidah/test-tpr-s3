@@ -68,7 +68,7 @@ func init() {
 	client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}}
 
 	interval := 3
-	d := LoadDataFile("services.json")
+	d := LoadDataFile("data/services.yaml")
 	go func() {
 		for _ = range time.Tick(time.Duration(interval) * time.Second) {
 			for _, service := range d {
@@ -84,10 +84,6 @@ func main() {
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 	}
-
-	//	d := LoadDataFile("services.json")
-
-	//        fmt.Println("services file successfully loaded")
 
 	// Add handlers and start the server
 	Address := ":" + Config.ListenPort

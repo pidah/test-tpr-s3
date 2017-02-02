@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION=${1:-0.0.11}
+VERSION=${1:-0.0.12}
 DOCKER_REPO="pidah/test-master"
 DOCKER_IMAGE=${DOCKER_REPO}:${VERSION}
 
