@@ -3,30 +3,37 @@ package main
 import (
 	"encoding/json"
 	//	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func GlobalServiceStatus(w http.ResponseWriter, req *http.Request) {
-	Lock.RLock()
-        defer Lock.RUnlock()
+//var g = func()
+//g := func(w http.ResponseWriter, r *http.Request) {
+//                w.WriteHeader(http.StatusOK)
+//                fmt.Fprintf(w, "hello world\n")
+//        }
 
-	for _, value := range Lock.State {
-		if value != "OK" {
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}
-	}
-	bs, err := json.Marshal(Lock.State)
-	if err != nil {
-		//		TODO..do not panic; use a recovery handler
-		panic(err)
-	}
-	w.Write(bs)
-}
+//g := func(w http.ResponseWriter, req *http.Request) {
+//	Lock.RLock()
+//        defer Lock.RUnlock()
+//
+//	for _, value := range Lock.State {
+//		if value != "OK" {
+//			w.WriteHeader(http.StatusServiceUnavailable)
+//		}
+//	}
+//	bs, err := json.Marshal(Lock.State)
+//	if err != nil {
+//		//		TODO..do not panic; use a recovery handler
+//		panic(err)
+//	}
+//	w.Write(bs)
+//}
 
 func SingleServiceStatus(w http.ResponseWriter, req *http.Request) {
 	Lock.RLock()
-        defer Lock.RUnlock()
+	defer Lock.RUnlock()
 
 	vars := mux.Vars(req)
 	ts := vars["testService"]
@@ -74,9 +81,14 @@ func servHome(w http.ResponseWriter, r *http.Request) {
 
 //AddHandlers creates a router and adds handlers
 func AddHandlers() *mux.Router {
+
+	logger := logrus.New()
+	logger.Level = logrus.InfoLevel
+	logger.Formatter = &logrus.JSONFormatter{}
+
 	router := mux.NewRouter()
 	http.Handle("/", &supportCORS{router})
-	router.HandleFunc("/services", GlobalServiceStatus).Methods("GET")
+//	router.HandleFunc("/services", (http.HandlerFunc(G), "homepage")).Methods("GET")
 	router.HandleFunc("/service/{testService}", SingleServiceStatus).Methods("GET")
 	router.HandleFunc("/", servHome).Methods("GET")
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))))

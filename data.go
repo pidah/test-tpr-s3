@@ -1,16 +1,16 @@
 package main
 
 import (
-//	"encoding/json"
-        "gopkg.in/yaml.v2"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 )
 
 type Service struct {
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
+	Name     string `yaml:"name"`
+	URL      string `yaml:"url"`
+	Interval int    `yaml:"interval"`
 }
 
 //LoadDataFile loads a yaml data file.

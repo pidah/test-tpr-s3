@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	//	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/caarlos0/env"
 	"github.com/gorilla/handlers"
 	"net/http"
@@ -63,7 +65,7 @@ func lookupService(s Service) {
 	}
 
 	Lock.Lock()
-        defer Lock.Unlock()
+	defer Lock.Unlock()
 	Lock.State[s.Name] = testServiceState
 	//	State[s.Name] = testServiceState
 
@@ -73,21 +75,27 @@ func lookupService(s Service) {
 
 func init() {
 
+	logger := logrus.New()
+	logger.Level = logrus.InfoLevel
+	logger.Formatter = &logrus.JSONFormatter{}
+
 	pool = x509.NewCertPool()
 	pool.AppendCertsFromPEM(pemCerts)
 	client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}}
 
-	interval := 3
 	d := LoadDataFile("data/services.yaml")
-	go func() {
-		for _ = range time.Tick(time.Duration(interval) * time.Second) {
-			for _, service := range d {
-				go lookupService(service)
+	for _, service := range d {
+		go func(s Service) {
+			if s.Internal == 0 {
+				s.Internal = 10
 			}
-		}
-	}()
+			for _ = range time.Tick(time.Duration(s.Interval) * time.Second) {
+				fmt.Println(s.Interval)
+				lookupService(service)
+			}
+		}(service)
+	}
 }
-
 func main() {
 
 	err := env.Parse(&Config)
@@ -101,8 +109,13 @@ func main() {
 	loggedRouter := handlers.LoggingHandler(os.Stdout, AddHandlers())
 
 	fmt.Println("Application listening on port", Config.ListenPort)
-	serverErr := http.ListenAndServe(Address, loggedRouter)
+	serverErr := http.ListenAndServe(Address, nil)
 	if serverErr != nil {
 		fmt.Println(serverErr)
 	}
+
+	//	http.Handle("/", L.Handler(http.HandlerFunc(exhandler), "homepage"))
+
+	http.ListenAndServe(":8080", loggedRouter)
+
 }
