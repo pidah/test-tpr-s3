@@ -6,9 +6,9 @@ import (
 	"fmt"
 	//	"encoding/json"
 	"github.com/caarlos0/env"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -25,15 +25,13 @@ type envConfig struct {
 //Config stores global env variables
 var Config = envConfig{}
 
-// Global state of test services
-//var State = make(map[string]string)
-
 var Logger = logrus.New()
 
 func Info(args ...interface{}) {
-    Logger.Info(args...)
+	Logger.Info(args...)
 }
 
+// Global state of test services with a lock
 var Lock = struct {
 	sync.RWMutex
 	State map[string]string
@@ -75,12 +73,12 @@ func lookupService(s Service) {
 	//	State[s.Name] = testServiceState
 
 	//State  = Service{s.Name,s.URL}
-//	Logger.Info("Probing test service ", s.Name)
+	//	Logger.Info("Probing test service ", s.Name)
 }
 
 func init() {
-      Logger.Level = logrus.InfoLevel
-      Logger.Formatter = &logrus.JSONFormatter{}
+	Logger.Level = logrus.InfoLevel
+	Logger.Formatter = &logrus.JSONFormatter{}
 
 	pool = x509.NewCertPool()
 	pool.AppendCertsFromPEM(pemCerts)
@@ -109,10 +107,13 @@ func main() {
 	// Add handlers and start the server
 	Address := ":" + Config.ListenPort
 
-        gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(Logrus())
-        router.GET("/services", GlobalServiceStatus)
+	router.GET("/services", GlobalServiceStatus)
+	router.GET("/service/:name", SingleServiceStatus)
+	router.Static("/assets", "./assets")
+        router.StaticFile("/", "templates/index/home.html")
 
 	s := &http.Server{
 		Addr:           Address,
