@@ -5,11 +5,10 @@ import (
 	"crypto/x509"
 	"fmt"
 	//	"encoding/json"
-	"github.com/Sirupsen/logrus"
 	"github.com/caarlos0/env"
-	"github.com/gorilla/handlers"
+	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
-	"os"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -28,6 +27,12 @@ var Config = envConfig{}
 
 // Global state of test services
 //var State = make(map[string]string)
+
+var Logger = logrus.New()
+
+func Info(args ...interface{}) {
+    Logger.Info(args...)
+}
 
 var Lock = struct {
 	sync.RWMutex
@@ -70,14 +75,12 @@ func lookupService(s Service) {
 	//	State[s.Name] = testServiceState
 
 	//State  = Service{s.Name,s.URL}
-	//fmt.Println(State)
+//	Logger.Info("Probing test service ", s.Name)
 }
 
 func init() {
-
-	logger := logrus.New()
-	logger.Level = logrus.InfoLevel
-	logger.Formatter = &logrus.JSONFormatter{}
+      Logger.Level = logrus.InfoLevel
+      Logger.Formatter = &logrus.JSONFormatter{}
 
 	pool = x509.NewCertPool()
 	pool.AppendCertsFromPEM(pemCerts)
@@ -86,16 +89,16 @@ func init() {
 	d := LoadDataFile("data/services.yaml")
 	for _, service := range d {
 		go func(s Service) {
-			if s.Internal == 0 {
-				s.Internal = 10
+			if s.Interval == 0 {
+				s.Interval = 10
 			}
 			for _ = range time.Tick(time.Duration(s.Interval) * time.Second) {
-				fmt.Println(s.Interval)
-				lookupService(service)
+				lookupService(s)
 			}
 		}(service)
 	}
 }
+
 func main() {
 
 	err := env.Parse(&Config)
@@ -106,16 +109,20 @@ func main() {
 	// Add handlers and start the server
 	Address := ":" + Config.ListenPort
 
-	loggedRouter := handlers.LoggingHandler(os.Stdout, AddHandlers())
+        gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(Logrus())
+        router.GET("/services", GlobalServiceStatus)
 
-	fmt.Println("Application listening on port", Config.ListenPort)
-	serverErr := http.ListenAndServe(Address, nil)
-	if serverErr != nil {
-		fmt.Println(serverErr)
+	s := &http.Server{
+		Addr:           Address,
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 
-	//	http.Handle("/", L.Handler(http.HandlerFunc(exhandler), "homepage"))
-
-	http.ListenAndServe(":8080", loggedRouter)
+	Logger.Info("Application listening on port ", Config.ListenPort)
+	s.ListenAndServe()
 
 }
