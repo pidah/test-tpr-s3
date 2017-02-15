@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-        "strings"
+	"strings"
 )
 
 var (
@@ -51,27 +51,19 @@ func main() {
 	url := "https://kubernetes:443/apis/extensions/v1beta1/namespaces/default/thirdpartyresources"
 	Logger.Info("kubernetes thirdpartyresource endpoint: ", url)
 
-	//	var jsonStr = []byte(`{"apiVersion": "extensions/v1beta1","kind": "ThirdPartyResource","description": "Experimental ThirdPartyResource","metadata": {"name": "dummy-test.prsn.io","labels": {"type": "ThirdPartyResource"}},"versions": [{"name": "v1"}]}`)
-	//
-	//	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	//	req.Header.Set("Content-Type", "application/json")
-	//	req.Header.Add("Authorization", "Bearer "+string(bearerToken))
-	//	resp, err := client.Do(req)
-	//	if err != nil {
-	//		Logger.Error(err)
-	//	}
-	//	Logger.Info(resp.Status)
+	var jsonStr = []byte(`{"apiVersion": "extensions/v1beta1","kind": "ThirdPartyResource","description": "Experimental ThirdPartyResource","metadata": {"name": "dummy-test.prsn.io","labels": {"type": "ThirdPartyResource"}},"versions": [{"name": "v1"}]}`)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+string(bearerToken))
+	resp, err := client.Do(req)
+	if err != nil {
+		Logger.Error(err)
+	}
+	Logger.Info(resp.Status)
 
 	svc := s3.New(session.New(), &aws.Config{Region: aws.String("eu-west-1"), HTTPClient: client, DisableSSL: aws.Bool(true)})
 
-	//	params := &s3.ListObjectsInput{
-	//		Bucket: aws.String("kubernetes-bitesize-pidah-a"),
-	//	}
-
-	//	s3Response, err := svc.ListObjects(params)
-	//	for _, key := range s3Response.Contents {
-	//		Logger.Info(*key.Key)
-	//	}
 	result, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("kubernetes-bitesize-pidah-a"),
 		Key:    aws.String("test-tpr-s3"),
@@ -87,13 +79,6 @@ func main() {
 	if strings.TrimSpace(string(responseStr)) == "testing" {
 		Logger.Info("working")
 	}
-
-	//        params := &s3.DeleteObjectInput{
-	//       Bucket: aws.String("Bucketname"),
-	//        Key : aws.String("ObjectKey"),
-	//    }
-	//s3Conn.DeleteObjects(params)
-	// curl -X DELETE -H "Content-Type: application/son" http://localhost:8080/apis/extensions/v1beta1/namespaces/default/thirdpartyresources/dummy-test.prsn.io
 
 	request, err := http.NewRequest("DELETE", url+"/dummy-test.prsn.io", nil)
 	request.Header.Set("Content-Type", "application/json")
