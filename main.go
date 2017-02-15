@@ -1,16 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	//	"encoding/json"
-	"github.com/caarlos0/env"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"io/ioutil"
 	"net/http"
-	"sync"
-	"time"
+        "strings"
 )
 
 var (
@@ -18,112 +18,89 @@ var (
 	pool   *x509.CertPool
 )
 
-type envConfig struct {
-	ListenPort string `env:"LISTEN_PORT" envDefault:"8080"`
-}
-
-//Config stores global env variables
-var Config = envConfig{}
-
 var Logger = logrus.New()
 
 func Info(args ...interface{}) {
 	Logger.Info(args...)
 }
 
-// Global state of test services with a lock
-var Lock = struct {
-	sync.RWMutex
-	State map[string]string
-}{State: make(map[string]string)}
-
-//var State = []Service{}
-
-// func lookupService()
-func lookupService(s Service) {
-	response := make(chan int)
-	testServiceState := "OK"
-
-	go func() {
-		resp, err := client.Head(s.URL)
-		if err != nil {
-			response <- http.StatusServiceUnavailable
-			return
-		}
-
-		response <- resp.StatusCode
-	}()
-
-	code := 0
-
-	select {
-	case <-time.After(2 * time.Second):
-		code = http.StatusServiceUnavailable
-		break
-	case code = <-response:
-		break
+func check(e error) {
+	if e != nil {
+		Logger.Panic(e)
 	}
-	if code != 200 {
-		testServiceState = "Service Unavailable"
-	}
-
-	Lock.Lock()
-	defer Lock.Unlock()
-	Lock.State[s.Name] = testServiceState
-	//	State[s.Name] = testServiceState
-
-	//State  = Service{s.Name,s.URL}
-	//	Logger.Info("Probing test service ", s.Name)
 }
 
 func init() {
 	Logger.Level = logrus.InfoLevel
 	Logger.Formatter = &logrus.JSONFormatter{}
-
 	pool = x509.NewCertPool()
 	pool.AppendCertsFromPEM(pemCerts)
-	client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}}
 
-	d := LoadDataFile("data/services.yaml")
-	for _, service := range d {
-		go func(s Service) {
-			if s.Interval == 0 {
-				s.Interval = 10
-			}
-			for _ = range time.Tick(time.Duration(s.Interval) * time.Second) {
-				lookupService(s)
-			}
-		}(service)
-	}
+	client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true, RootCAs: pool}}}
 }
 
 func main() {
 
-	err := env.Parse(&Config)
+	bearerToken, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	check(err)
+
+	r := RandStringBytes(10)
+	tprName := "test-" + r
+	Logger.Info(tprName)
+
+	url := "https://kubernetes:443/apis/extensions/v1beta1/namespaces/default/thirdpartyresources"
+	Logger.Info("kubernetes thirdpartyresource endpoint: ", url)
+
+	//	var jsonStr = []byte(`{"apiVersion": "extensions/v1beta1","kind": "ThirdPartyResource","description": "Experimental ThirdPartyResource","metadata": {"name": "dummy-test.prsn.io","labels": {"type": "ThirdPartyResource"}},"versions": [{"name": "v1"}]}`)
+	//
+	//	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	//	req.Header.Set("Content-Type", "application/json")
+	//	req.Header.Add("Authorization", "Bearer "+string(bearerToken))
+	//	resp, err := client.Do(req)
+	//	if err != nil {
+	//		Logger.Error(err)
+	//	}
+	//	Logger.Info(resp.Status)
+
+	svc := s3.New(session.New(), &aws.Config{Region: aws.String("eu-west-1"), HTTPClient: client, DisableSSL: aws.Bool(true)})
+
+	//	params := &s3.ListObjectsInput{
+	//		Bucket: aws.String("kubernetes-bitesize-pidah-a"),
+	//	}
+
+	//	s3Response, err := svc.ListObjects(params)
+	//	for _, key := range s3Response.Contents {
+	//		Logger.Info(*key.Key)
+	//	}
+	result, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String("kubernetes-bitesize-pidah-a"),
+		Key:    aws.String("test-tpr-s3"),
+	})
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		Logger.Error(err)
+	}
+	Logger.Info(result)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(result.Body)
+	responseStr := buf.String()
+	Logger.Info(responseStr)
+	if strings.TrimSpace(string(responseStr)) == "testing" {
+		Logger.Info("working")
 	}
 
-	// Add handlers and start the server
-	Address := ":" + Config.ListenPort
+	//        params := &s3.DeleteObjectInput{
+	//       Bucket: aws.String("Bucketname"),
+	//        Key : aws.String("ObjectKey"),
+	//    }
+	//s3Conn.DeleteObjects(params)
+	// curl -X DELETE -H "Content-Type: application/son" http://localhost:8080/apis/extensions/v1beta1/namespaces/default/thirdpartyresources/dummy-test.prsn.io
 
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-	router.Use(Logrus())
-	router.GET("/services", GlobalServiceStatus)
-	router.GET("/service/:name", SingleServiceStatus)
-	router.Static("/assets", "./assets")
-        router.StaticFile("/", "templates/index/home.html")
-
-	s := &http.Server{
-		Addr:           Address,
-		Handler:        router,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+	request, err := http.NewRequest("DELETE", url+"/dummy-test.prsn.io", nil)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Add("Authorization", "Bearer "+string(bearerToken))
+	respDelete, err := client.Do(request)
+	if err != nil {
+		Logger.Error(err)
 	}
-
-	Logger.Info("Application listening on port ", Config.ListenPort)
-	s.ListenAndServe()
-
+	Logger.Info("deleted thirdparty resource", respDelete.Status)
 }
