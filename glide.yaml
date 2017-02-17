@@ -1,4 +1,4 @@
-package: github.com/pearsontechnology/test-master-app
+package: github.com/pearsontechnology/test-tpr-s3
 import:
 - package: github.com/caarlos0/env
   version: ^2.1.0
